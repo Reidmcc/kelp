@@ -107,6 +107,23 @@ var strategies = map[string]StrategyContainer{
 			return makeDeleteStrategy(strategyFactoryData.sdex, strategyFactoryData.assetBase, strategyFactoryData.assetQuote), nil
 		},
 	},
+	"buysellmod": {
+		SortOrder:   5,
+		Description: "Creates buy and sell offers based on a reference price with a pre-specified liquidity depth, adjusting volume to avoid losses",
+		NeedsConfig: true,
+		Complexity:  "Intermediate",
+		makeFn: func(strategyFactoryData strategyFactoryData) (api.Strategy, error) {
+			var cfg buySellConfig
+			err := config.Read(strategyFactoryData.stratConfigPath, &cfg)
+			utils.CheckConfigError(cfg, err, strategyFactoryData.stratConfigPath)
+			utils.LogConfig(cfg)
+			s, e := makeBuySellModStrategy(strategyFactoryData.sdex, strategyFactoryData.tradingPair, strategyFactoryData.ieif, strategyFactoryData.assetBase, strategyFactoryData.assetQuote, &cfg)
+			if e != nil {
+				return nil, fmt.Errorf("makeFn failed: %s", e)
+			}
+			return s, nil
+		},
+	},
 }
 
 // MakeStrategy makes a strategy

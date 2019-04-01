@@ -21,6 +21,9 @@ import (
 // largePrecision is a large precision value for in-memory calculations
 const largePrecision = 10
 
+const buyPrecisionHack = 0
+const minVolumeHack = 1.0
+
 // BatchedExchange accumulates instructions that can be read out and processed in a batch-style later
 type BatchedExchange struct {
 	commands        []Command
@@ -396,7 +399,7 @@ func manageOffer2Order(mob *build.ManageOfferBuilder, baseAsset horizon.Asset, q
 		volume = model.NumberFromFloat(volume.AsFloat()*price.AsFloat(), orderConstraints.VolumePrecision)
 		price = model.InvertNumber(price)
 	}
-	volume = model.NumberByCappingPrecision(volume, orderConstraints.VolumePrecision)
+	volume = model.NumberByCappingPrecision(volume, buyPrecisionHack)
 	price = model.NumberByCappingPrecision(price, orderConstraints.PricePrecision)
 
 	return &model.Order{

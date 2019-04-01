@@ -118,9 +118,9 @@ func (p *dynamicSpreadLevelProvider) GetFillHandlers() ([]api.FillHandler, error
 
 // HandleFill impl
 func (p *dynamicSpreadLevelProvider) HandleFill(trade model.Trade) error {
-	// if trade.OrderAction.IsBuy() != p.sideAction.IsBuy() && p.counterHasFilled == false {
-	p.lastCounterFill = trade.Price
-	p.counterHasFilled = true
-	// }
+	if trade.OrderAction.IsBuy() != p.sideAction.IsBuy() {
+		p.lastCounterFill = trade.Price
+		p.counterHasFilled = true
+	}
 	return nil
 }

@@ -399,7 +399,7 @@ func manageOffer2Order(mob *build.ManageOfferBuilder, baseAsset horizon.Asset, q
 		volume = model.NumberFromFloat(volume.AsFloat()*price.AsFloat(), orderConstraints.VolumePrecision)
 		price = model.InvertNumber(price)
 	}
-	volume = model.NumberByCappingPrecision(volume, buyPrecisionHack)
+	volume = model.NumberByCappingPrecision(volume, orderConstraints.VolumePrecision)
 	price = model.NumberByCappingPrecision(price, orderConstraints.PricePrecision)
 
 	return &model.Order{

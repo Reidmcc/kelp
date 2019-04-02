@@ -222,6 +222,9 @@ func loadExchanges() {
 				continue
 			}
 			boundExchangeName := exchangeName
+			var testOrderConstraints = map[model.TradingPair]model.OrderConstraints{
+				*model.MakeTradingPair(model.XLM, model.USD): *model.MakeOrderConstraints(6, 0, 1.0),
+			}
 
 			(*exchanges)[key] = ExchangeContainer{
 				SortOrder:    uint16(sortOrderIndex),
@@ -231,7 +234,7 @@ func loadExchanges() {
 				makeFn: func(exchangeFactoryData exchangeFactoryData) (api.Exchange, error) {
 					return makeCcxtExchange(
 						boundExchangeName,
-						nil,
+						testOrderConstraints,
 						exchangeFactoryData.apiKeys,
 						exchangeFactoryData.ccxtParams,
 						exchangeFactoryData.headers,

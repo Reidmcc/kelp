@@ -9,39 +9,52 @@ import (
 
 // staticSpreadLevelProvider provides a fixed number of levels using a static percentage spread
 type dynamicSpreadLevelProvider struct {
-	staticLevels     []staticLevel
-	amountOfBase     float64
-	offset           rateOffset
-	pf               *api.FeedPair
-	orderConstraints *model.OrderConstraints
-	sideAction       model.OrderAction
-	lastCounterFill  *model.Number
-	counterLimit     float64
-	counterHasFilled bool
+	staticLevels      []staticLevel
+	amountOfBase      float64
+	offset            rateOffset
+	pf                *api.FeedPair
+	orderConstraints  *model.OrderConstraints
+	sideAction        model.OrderAction
+	carryBackTrigger  float64
+	lowBalanceTarget  float64
+	highBalanceTarget float64
+	amountReduce      float64
+	lastCounterFill   *model.Number
+	counterHasFilled  bool
 }
 
 // ensure it implements the LevelProvider interface
 var _ api.LevelProvider = &dynamicSpreadLevelProvider{}
 
 // makeStaticSpreadLevelProvider is a factory method
-func makeDynamicSpreadLevelProvider(staticLevels []staticLevel, amountOfBase float64, offset rateOffset, pf *api.FeedPair, orderConstraints *model.OrderConstraints, sideAction model.OrderAction) api.LevelProvider {
-	counterLimit := staticLevels[0].SPREAD
+func makeDynamicSpreadLevelProvider(
+	staticLevels []staticLevel,
+	amountOfBase float64,
+	offset rateOffset,
+	pf *api.FeedPair,
+	orderConstraints *model.OrderConstraints,
+	sideAction model.OrderAction,
+	carryBackTrigger float64,
+	lowBalanceTarget float64,
+	highBalanceTarget float64,
+	amountReduce float64) api.LevelProvider {
 	return &dynamicSpreadLevelProvider{
-		staticLevels:     staticLevels,
-		amountOfBase:     amountOfBase,
-		offset:           offset,
-		pf:               pf,
-		orderConstraints: orderConstraints,
-		sideAction:       sideAction,
-		lastCounterFill:  nil,
-		counterLimit:     counterLimit,
-		counterHasFilled: false,
+		staticLevels:      staticLevels,
+		amountOfBase:      amountOfBase,
+		offset:            offset,
+		pf:                pf,
+		orderConstraints:  orderConstraints,
+		sideAction:        sideAction,
+		carryBackTrigger:  carryBackTrigger,
+		lowBalanceTarget:  lowBalanceTarget,
+		highBalanceTarget: highBalanceTarget,
+		amountReduce:      amountReduce,
+		lastCounterFill:   nil,
 	}
 }
 
 // GetLevels impl.
 func (p *dynamicSpreadLevelProvider) GetLevels(maxAssetBase float64, maxAssetQuote float64) ([]api.Level, error) {
-	p.counterHasFilled = false
 	centerPrice, e := p.pf.GetCenterPrice()
 	if e != nil {
 		log.Printf("error: center price couldn't be loaded! | %s\n", e)
@@ -68,19 +81,18 @@ func (p *dynamicSpreadLevelProvider) GetLevels(maxAssetBase float64, maxAssetQuo
 	carryOver := 0.0
 	for _, sl := range p.staticLevels {
 		absoluteSpread := centerPrice * sl.SPREAD
-		if p.sideAction.IsBuy() {
-			buysideabslimit := (1 / centerPrice) * p.counterLimit
-			log.Printf("buy side absolute limit calculated as: %v\n", buysideabslimit)
-		}
-		// log.Printf("absolute offset would be: %v\n", centerPrice*absoluteLimit)
-		// log.Printf("test price for selling would be < %v\n", p.lastCounterFill.AsFloat()+(centerPrice*absoluteLimit))
-		// log.Printf("test price for buying would be > %v\n", p.lastCounterFill.AsFloat()-(centerPrice*absoluteLimit))
 		targetPrice := centerPrice + absoluteSpread
 		targetAmount := sl.AMOUNT * p.amountOfBase
+		if p.sideAction.IsSell() && maxAssetBase < p.lowBalanceTarget {
+			targetAmount -= p.amountReduce * p.amountOfBase
+		}
+		if p.sideAction.IsBuy() && maxAssetBase > p.highBalanceTarget {
+			targetAmount -= p.amountReduce * p.amountOfBase
+		}
 		if p.sideAction.IsBuy() && p.lastCounterFill != nil {
-			absoluteLimit := (1 / centerPrice) * p.counterLimit
-			log.Printf("absolute limit calculated as: %v\n", absoluteLimit)
-			log.Printf("testing against %v\n", p.lastCounterFill.AsFloat()-absoluteLimit)
+			absoluteLimit := (1 / centerPrice) * p.carryBackTrigger
+			// log.Printf("absolute limit calculated as: %v\n", absoluteLimit)
+			// log.Printf("testing against %v\n", p.lastCounterFill.AsFloat()-absoluteLimit)
 			if 1/targetPrice > p.lastCounterFill.AsFloat()-absoluteLimit {
 				carryOver += targetAmount
 				log.Printf("Carrying over %v due to price move\n", targetAmount)
@@ -89,9 +101,9 @@ func (p *dynamicSpreadLevelProvider) GetLevels(maxAssetBase float64, maxAssetQuo
 			}
 		}
 		if p.sideAction.IsSell() && p.lastCounterFill != nil {
-			absoluteLimit := centerPrice * p.counterLimit
-			log.Printf("absolute limit calculated as: %v\n", absoluteLimit)
-			log.Printf("testing against %v\n", p.lastCounterFill.AsFloat()+absoluteLimit)
+			absoluteLimit := centerPrice * p.carryBackTrigger
+			// log.Printf("absolute limit calculated as: %v\n", absoluteLimit)
+			// log.Printf("testing against %v\n", p.lastCounterFill.AsFloat()+absoluteLimit)
 			// absoluteLimit := centerPrice * (1 - p.counterLimit)
 			if targetPrice < p.lastCounterFill.AsFloat()+absoluteLimit {
 				carryOver += targetAmount
@@ -120,7 +132,6 @@ func (p *dynamicSpreadLevelProvider) GetFillHandlers() ([]api.FillHandler, error
 func (p *dynamicSpreadLevelProvider) HandleFill(trade model.Trade) error {
 	if trade.OrderAction.IsBuy() != p.sideAction.IsBuy() {
 		p.lastCounterFill = trade.Price
-		p.counterHasFilled = true
 	}
 	return nil
 }

@@ -21,6 +21,10 @@ type buySellModConfig struct {
 	DataFeedAURL           string        `valid:"-" toml:"DATA_FEED_A_URL"`
 	DataTypeB              string        `valid:"-" toml:"DATA_TYPE_B"`
 	DataFeedBURL           string        `valid:"-" toml:"DATA_FEED_B_URL"`
+	CarryBackTrigger       float64       `valid:"-" toml:"CARRYBACK_TRIGGER"`
+	LowBalanceTarget       float64       `valid:"-" toml:"BALANCE_OF_A_LOW_TARGET"`
+	HighBalanceTarget      float64       `valid:"-" toml:"BALANCE_OF_A_HIGH_TARGET"`
+	AmountReduce           float64       `valid:"-" toml:"AMOUNT_REDUCE"`
 	Levels                 []staticLevel `valid:"-" toml:"LEVELS"`
 }
 
@@ -36,7 +40,7 @@ func makeBuySellModStrategy(
 	ieif *IEIF,
 	assetBase *horizon.Asset,
 	assetQuote *horizon.Asset,
-	config *buySellConfig,
+	config *buySellModConfig,
 ) (api.Strategy, error) {
 	offsetSell := rateOffset{
 		percent:      config.RateOffsetPercent,
@@ -66,6 +70,10 @@ func makeBuySellModStrategy(
 			sellSideFeedPair,
 			orderConstraints,
 			model.OrderActionSell,
+			config.CarryBackTrigger,
+			config.LowBalanceTarget,
+			config.HighBalanceTarget,
+			config.AmountReduce,
 		),
 		config.PriceTolerance,
 		config.AmountTolerance,
@@ -101,6 +109,10 @@ func makeBuySellModStrategy(
 			buySideFeedPair,
 			orderConstraints,
 			model.OrderActionBuy,
+			config.CarryBackTrigger,
+			config.LowBalanceTarget,
+			config.HighBalanceTarget,
+			config.AmountReduce,
 		),
 		config.PriceTolerance,
 		config.AmountTolerance,

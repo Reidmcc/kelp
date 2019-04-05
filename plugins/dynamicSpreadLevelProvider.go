@@ -86,7 +86,7 @@ func (p *dynamicSpreadLevelProvider) GetLevels(maxAssetBase float64, maxAssetQuo
 		if p.sideAction.IsSell() && maxAssetBase < p.lowBalanceTarget {
 			targetAmount -= p.amountReduce * p.amountOfBase
 		}
-		if p.sideAction.IsBuy() && maxAssetBase > p.highBalanceTarget {
+		if p.sideAction.IsBuy() && maxAssetQuote > p.highBalanceTarget {
 			targetAmount -= p.amountReduce * p.amountOfBase
 		}
 		if p.sideAction.IsBuy() && p.lastCounterFill != nil {

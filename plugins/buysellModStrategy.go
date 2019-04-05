@@ -19,8 +19,10 @@ type buySellModConfig struct {
 	AmountOfABase          float64       `valid:"-" toml:"AMOUNT_OF_A_BASE"` // the size of order to keep on either side
 	DataTypeA              string        `valid:"-" toml:"DATA_TYPE_A"`
 	DataFeedAURL           string        `valid:"-" toml:"DATA_FEED_A_URL"`
+	DataFeedAInvert        bool          `valid:"-" toml:"DATA_FEED_A_INVERT"`
 	DataTypeB              string        `valid:"-" toml:"DATA_TYPE_B"`
 	DataFeedBURL           string        `valid:"-" toml:"DATA_FEED_B_URL"`
+	DataFeedBInvert        bool          `valid:"-" toml:"DATA_FEED_B_INVERT"`
 	CarryBackTrigger       float64       `valid:"-" toml:"CARRYBACK_TRIGGER"`
 	LowBalanceTarget       float64       `valid:"-" toml:"BALANCE_OF_A_LOW_TARGET"`
 	HighBalanceTarget      float64       `valid:"-" toml:"BALANCE_OF_A_HIGH_TARGET"`
@@ -50,8 +52,10 @@ func makeBuySellModStrategy(
 	sellSideFeedPair, e := MakeFeedPair(
 		config.DataTypeA,
 		config.DataFeedAURL,
+		config.DataFeedAInvert,
 		config.DataTypeB,
 		config.DataFeedBURL,
+		config.DataFeedBInvert,
 	)
 	if e != nil {
 		return nil, fmt.Errorf("cannot make the buysell strategy because we could not make the sell side feed pair: %s", e)
@@ -89,8 +93,10 @@ func makeBuySellModStrategy(
 	buySideFeedPair, e := MakeFeedPair(
 		config.DataTypeB,
 		config.DataFeedBURL,
+		config.DataFeedBInvert,
 		config.DataTypeA,
 		config.DataFeedAURL,
+		config.DataFeedAInvert,
 	)
 	if e != nil {
 		return nil, fmt.Errorf("cannot make the buysell strategy because we could not make the buy side feed pair: %s", e)

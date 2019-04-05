@@ -223,7 +223,7 @@ func loadExchanges() {
 			}
 			boundExchangeName := exchangeName
 			var testOrderConstraints = map[model.TradingPair]model.OrderConstraints{
-				*model.MakeTradingPair(model.XLM, model.USD): *model.MakeOrderConstraints(6, 0, 1.0),
+				*model.MakeTradingPair(model.XLM, model.USD): *model.MakeOrderConstraints(6, 0, 0.99),
 			}
 
 			(*exchanges)[key] = ExchangeContainer{
